@@ -74,17 +74,50 @@ export default function Home() {
   // On mount: use geolocation if no city set
   useEffect(() => {
     if (coords) return; // already have coords from city search
-    if (!navigator.geolocation) return;
+    
+    // Default to a fallback location if geolocation fails or isn't available
+    const useFallbackLocation = () => {
+      // Default to Johannesburg, South Africa
+      const fallbackLat = -26.2041;
+      const fallbackLon = 28.0473;
+      setCoords({ lat: fallbackLat, lon: fallbackLon });
+      setLocation({ city: "Johannesburg", country: "South Africa" });
+    };
+    
+    if (!navigator.geolocation) {
+      useFallbackLocation();
+      return;
+    }
+    
+    // Set a timeout to ensure we don't wait forever
+    const timeoutId = setTimeout(() => {
+      if (!coords) {
+        useFallbackLocation();
+      }
+    }, 5000);
+    
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
+        clearTimeout(timeoutId);
         setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude });
         // Reverse geocode to get city/country
-        const place = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
-        if (place) setLocation(place);
+        try {
+          const place = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+          if (place) setLocation(place);
+          else useFallbackLocation();
+        } catch (error) {
+          useFallbackLocation();
+        }
       },
-      () => {},
+      (error) => {
+        clearTimeout(timeoutId);
+        console.log("Geolocation error:", error.message);
+        useFallbackLocation();
+      },
       { enableHighAccuracy: false, timeout: 10000 }
     );
+    
+    return () => clearTimeout(timeoutId);
   }, [coords]);
 
   // Use coords for sun times
@@ -175,7 +208,7 @@ export default function Home() {
                 <td className="py-1 text-right font-medium" aria-label={`First light at ${formatTime(data.civilTwilightBegin)}`}>{formatTime(data.civilTwilightBegin)}</td>
               </tr>
               <tr>
-                <td className="py-1" aria-label="Morning golden hour">Golden hour ✨</td>
+                <td className="py-1" aria-label="Morning golden hour">Morning golden hour ✨</td>
                 <td className="py-1 text-right font-medium" aria-label={`Morning golden hour from ${formatTime(data.goldenHourMorningStart)} to ${formatTime(data.goldenHourMorningEnd)}`}>{formatTime(data.goldenHourMorningStart)} – {formatTime(data.goldenHourMorningEnd)}</td>
               </tr>
               <tr>
@@ -185,7 +218,7 @@ export default function Home() {
                 </td>
               </tr>
               <tr>
-                <td className="py-1" aria-label="Evening golden hour">Golden hour ✨</td>
+                <td className="py-1" aria-label="Evening golden hour">Evening golden hour ✨</td>
                 <td className="py-1 text-right font-medium" aria-label={`Evening golden hour from ${formatTime(data.goldenHourEveningStart)} to ${formatTime(data.goldenHourEveningEnd)}`}>{formatTime(data.goldenHourEveningStart)} – {formatTime(data.goldenHourEveningEnd)}</td>
               </tr>
               <tr>
