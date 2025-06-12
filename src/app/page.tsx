@@ -1,3 +1,11 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Golden Hour Today Near Me | Sunset & Sunrise Times',
+  description: 'Find out when is golden hour today near me. Get accurate golden hour, sunset, and sunrise times for your location. Plan your photography and enjoy the magic light!',
+  keywords: ['golden hour today', 'golden hour sunset', 'when is golden hour today', 'when is golden hour today near me', 'sunrise times', 'sunset times', 'photography light', 'magic hour'],
+};
+
 'use client';
 import React from "react";
 import { useEffect, useState, useCallback } from "react";
