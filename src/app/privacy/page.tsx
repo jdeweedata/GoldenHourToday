@@ -40,9 +40,6 @@ export default function PrivacyPolicy() {
         If you have questions or comments about this notice, you may email us at [Your Contact Email]
       </p>
 
-      <p className="mt-6 text-sm text-gray-500">
-        <strong>Disclaimer:</strong> This is a template privacy policy. You should consult with a legal professional to ensure this policy is compliant with all applicable laws and regulations, including POPIA for South African users.
-      </p>
     </main>
   );
 }
