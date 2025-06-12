@@ -181,7 +181,7 @@ export default function Home() {
             <div className="bg-white dark:bg-zinc-900 p-6 rounded shadow w-80 max-w-full">
               <h2 className="text-lg font-bold mb-2">Change Location</h2>
               <input
-                className="w-full p-2 mb-2 border rounded text-black"
+                className="w-full p-2 mb-2 border rounded text-white bg-zinc-800 border-zinc-600 placeholder-zinc-400"
                 type="text"
                 placeholder="Enter city name"
                 value={cityInput}
