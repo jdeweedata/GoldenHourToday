@@ -71,14 +71,14 @@ export default function Home() {
   }
 
   // Default to a fallback location if geolocation fails or isn't available
-  const useFallbackLocation = useCallback(() => {
+  const applyFallbackLocation = useCallback(() => {
     console.log("Using fallback location");
     // Default to Johannesburg, South Africa
     const fallbackLat = -26.2041;
     const fallbackLon = 28.0473;
     setCoords({ lat: fallbackLat, lon: fallbackLon });
     setLocation({ city: "Johannesburg", country: "South Africa" });
-  }, [setCoords, setLocation]); // Add dependencies for useCallback
+  }, [setCoords, setLocation]);
 
   // On mount: use geolocation if no city set
   useEffect(() => {
@@ -87,7 +87,7 @@ export default function Home() {
     // Check if geolocation is available
     if (!navigator.geolocation) {
       console.log("Geolocation not available in browser");
-      useFallbackLocation();
+      applyFallbackLocation();
       return;
     }
     
@@ -95,7 +95,7 @@ export default function Home() {
     const timeoutId = setTimeout(() => {
       console.log("Geolocation timed out");
       if (!coords) {
-        useFallbackLocation();
+        applyFallbackLocation();
       }
     }, 5000);
     
@@ -115,15 +115,15 @@ export default function Home() {
                 setLocation(place);
               } else {
                 console.log("Geocoding returned null place");
-                useFallbackLocation();
+                applyFallbackLocation();
               }
             } catch (geocodeError) {
               console.error("Geocoding error:", geocodeError);
-              useFallbackLocation();
+              applyFallbackLocation();
             }
           } catch (posError) {
             console.error("Error handling position:", posError);
-            useFallbackLocation();
+            applyFallbackLocation();
           }
         },
         (error) => {
@@ -133,18 +133,18 @@ export default function Home() {
           if (error.code === 1) { // PERMISSION_DENIED
             setShowLocationPrompt(true);
           } else {
-            useFallbackLocation();
+            applyFallbackLocation();
           }
         },
         { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
       );
     } catch (geoError) {
       console.error("Unexpected geolocation error:", geoError);
-      useFallbackLocation();
+      applyFallbackLocation();
     }
     
     return () => clearTimeout(timeoutId);
-  }, [coords, useFallbackLocation]); // Added useFallbackLocation to dependency array
+  }, [coords, applyFallbackLocation]); // Added applyFallbackLocation to dependency array
 
   // Use coords for sun times
   const { data, loading, error } = useSunTimes(coords?.lat, coords?.lon);
