@@ -1,7 +1,6 @@
 'use client';
 import React from "react";
-import Head from "next/head";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { reverseGeocode, Place } from "@/lib/geocode";
 import { generateICS } from "@/lib/ics";
 import { SunTimes } from "@/lib/sunTimes";
@@ -71,19 +70,19 @@ export default function Home() {
     setShowLocationPrompt(false);
   }
 
+  // Default to a fallback location if geolocation fails or isn't available
+  const useFallbackLocation = useCallback(() => {
+    console.log("Using fallback location");
+    // Default to Johannesburg, South Africa
+    const fallbackLat = -26.2041;
+    const fallbackLon = 28.0473;
+    setCoords({ lat: fallbackLat, lon: fallbackLon });
+    setLocation({ city: "Johannesburg", country: "South Africa" });
+  }, [setCoords, setLocation]); // Add dependencies for useCallback
+
   // On mount: use geolocation if no city set
   useEffect(() => {
     if (coords) return; // already have coords from city search
-    
-    // Default to a fallback location if geolocation fails or isn't available
-    const useFallbackLocation = () => {
-      console.log("Using fallback location");
-      // Default to Johannesburg, South Africa
-      const fallbackLat = -26.2041;
-      const fallbackLon = 28.0473;
-      setCoords({ lat: fallbackLat, lon: fallbackLon });
-      setLocation({ city: "Johannesburg", country: "South Africa" });
-    };
     
     // Check if geolocation is available
     if (!navigator.geolocation) {
@@ -145,7 +144,7 @@ export default function Home() {
     }
     
     return () => clearTimeout(timeoutId);
-  }, [coords]);
+  }, [coords, useFallbackLocation]); // Added useFallbackLocation to dependency array
 
   // Use coords for sun times
   const { data, loading, error } = useSunTimes(coords?.lat, coords?.lon);
@@ -176,40 +175,6 @@ export default function Home() {
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:outline-none">
         Skip to content
       </a>
-      <Head>
-        <title>Sunrise, Sunset & Golden Hour Times Near You | GoldenHourToday</title>
-        <meta name="description" content="See today's sunrise, sunset, and golden hour times for your exact location. Free, fast, mobile-friendly, and ad-free for early users." />
-        <meta property="og:title" content="Sunrise, Sunset & Golden Hour Times Near You" />
-        
-        {/* Preconnect to API domains */}
-        <link rel="preconnect" href="https://api.sunrise-sunset.org" />
-        <link rel="preconnect" href="https://geocoding-api.open-meteo.com" />
-        
-        {/* Structured data for sun times */}
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "Dataset",
-            "name": `Sunrise and Sunset Times for ${location?.city || 'your location'}`,
-            "description": `Today's sunrise, sunset, and golden hour times for ${location?.city || 'your location'}.`,
-            "keywords": ["sunrise", "sunset", "golden hour", "photography", "sun calculator", location?.city || ''],
-            "temporalCoverage": new Date().toISOString().split('T')[0],
-            "spatialCoverage": {
-              "@type": "Place",
-              "name": location?.city ? `${location.city}, ${location.country}` : "Current Location"
-            },
-            "variableMeasured": [
-              "Sunrise time",
-              "Sunset time",
-              "Golden hour times",
-              "First light",
-              "Solar noon"
-            ]
-          })}
-        </script>
-        <meta property="og:description" content="See today's sunrise, sunset, and golden hour times for your exact location. Free, fast, mobile-friendly, and ad-free for early users." />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
       <header className="sticky top-0 z-10 w-full bg-white/80 dark:bg-black/80 border-b border-zinc-200 dark:border-zinc-800 flex flex-col items-center py-2 mb-6 shadow-sm">
         <div className="flex flex-col items-center">
           <span className="text-xl font-bold" style={{color: '#F5831F'}}>GoldenHourToday <span aria-label="sun" role="img">☀️</span></span>

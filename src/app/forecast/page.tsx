@@ -1,8 +1,5 @@
 'use client';
 import React, { useState } from 'react';
-import Link from 'next/link';
-import Head from 'next/head';
-
 export default function ForecastPage() {
   const [isPremium, setIsPremium] = useState(false);
   
