@@ -1,54 +1,47 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ServiceWorkerProvider } from './sw-client';
 import "./globals.css";
 
 const geistSans = Geist({
-  variable: "--font-geist-sans",
   subsets: ["latin"],
+  variable: "--font-geist-sans",
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
+  variable: "--font-geist-mono",
 });
 
 export const metadata: Metadata = {
-  title: "Sunrise, Sunset & Golden Hour Times | GoldenHourToday",
-  description: "Get accurate sunrise, sunset, and golden hour times for your location. Perfect for photographers, outdoor enthusiasts, and anyone planning around daylight.",
-  keywords: "sunrise, sunset, golden hour, blue hour, photography, sun calculator, daylight hours, twilight, dawn, dusk",
-  authors: [{ name: "GoldenHourToday" }],
+  title: "GoldenHourToday | Sunrise, Sunset & Golden Hour Calculator",
+  description: "Get accurate sunrise, sunset, and golden hour times for your location. Perfect for photographers, filmmakers, and outdoor enthusiasts.",
+  keywords: "sunrise, sunset, golden hour, blue hour, photography, sun calculator, sunrise time, sunset time, first light, last light, dawn, dusk, twilight, sun position, sun tracker",
+  authors: [
+    {
+      name: "GoldenHourToday",
+      url: "https://goldenhourtoday.xyz",
+    },
+  ],
   creator: "GoldenHourToday",
-  publisher: "GoldenHourToday",
   openGraph: {
-    title: "Sunrise, Sunset & Golden Hour Times | GoldenHourToday",
-    description: "Get accurate sunrise, sunset, and golden hour times for your location.",
+    title: "GoldenHourToday | Sunrise, Sunset & Golden Hour Calculator",
+    description: "Get accurate sunrise, sunset, and golden hour times for your location. Perfect for photographers, filmmakers, and outdoor enthusiasts.",
     url: "https://goldenhourtoday.xyz",
     siteName: "GoldenHourToday",
     locale: "en_US",
     type: "website",
   },
   twitter: {
-    card: "summary_large_image",
-    title: "Sunrise, Sunset & Golden Hour Times | GoldenHourToday",
+    card: "summary",
+    title: "GoldenHourToday | Sunrise, Sunset & Golden Hour Calculator",
     description: "Get accurate sunrise, sunset, and golden hour times for your location.",
   },
   viewport: "width=device-width, initial-scale=1",
   themeColor: "#F5831F",
 };
 
-// Client component for service worker registration
-'use client';
-
-import { useEffect } from 'react';
-import { registerServiceWorker } from './sw-register';
-
-function ServiceWorkerProvider({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    registerServiceWorker();
-  }, []);
-  
-  return <>{children}</>;
-}
+// Service worker registration is handled by the imported ServiceWorkerProvider component
 
 export default function RootLayout({
   children,
