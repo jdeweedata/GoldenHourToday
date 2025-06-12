@@ -122,15 +122,24 @@ export default function Home() {
       <header className="sticky top-0 z-10 w-full bg-white/80 dark:bg-black/80 border-b border-zinc-200 dark:border-zinc-800 flex flex-col items-center py-2 mb-6 shadow-sm">
         <div className="flex flex-col items-center">
           <span className="text-xl font-bold" style={{color: '#F5831F'}}>GoldenHourToday <span aria-label="sun" role="img">☀️</span></span>
-          <span className="text-xs text-zinc-500 mt-1">
-            Location: <span className="font-semibold text-zinc-700 dark:text-zinc-200">{location ? `${location.city}${location.country ? ', ' + location.country : ''}` : 'Current Location'}</span>
-            <button
-              className="ml-2 underline text-xs text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded"
-              aria-label="Change Location"
+          <div className="text-sm">
+            <span>Location: </span>
+            {location ? (
+              <span>{location.city}, {location.country}</span>
+            ) : (
+              <span>Detecting location...</span>
+            )}
+            <button 
               onClick={() => setShowLocationPrompt(true)}
-            >Change Location</button>
-          </span>
-          <span className="text-xs text-zinc-500">Today: {new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date())}</span>
+              className="ml-2 text-blue-600 hover:underline text-xs"
+              aria-label="Change location"
+            >
+              Change Location
+            </button>
+          </div>
+          <div className="text-xs text-zinc-500 mt-1">
+            Today: {new Date().toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+          </div>
         </div>
       </header>
       <main className="min-h-screen flex flex-col items-center p-4 bg-white dark:bg-black">
@@ -154,7 +163,6 @@ export default function Home() {
             </div>
           </div>
         )}
-        <h1 className="text-2xl font-bold mb-6" style={{color: '#F5831F'}}>GoldenHourToday</h1>
         <div className="w-full max-w-sm border rounded-lg p-4 shadow bg-white dark:bg-zinc-900" aria-label="Today's sun times">
           <table className="w-full text-left">
             <tbody className="text-sm">
