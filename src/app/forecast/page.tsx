@@ -7,16 +7,17 @@ export default function ForecastPage() {
   const [isPremium, setIsPremium] = useState(false);
   
   return (
-    <>
-      <Head>
-        <title>7-Day Forecast | GoldenHourToday</title>
-        <meta name="description" content="7-day forecast of sunrise, sunset, and golden hour times for your location." />
-      </Head>
-      
+    <div className="min-h-screen flex flex-col bg-white dark:bg-black text-black dark:text-white">
+      {/* Skip to content link for accessibility */}
+      <a href="#forecast-content" className="sr-only focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:outline-none">
+        Skip to content
+      </a>
       <header className="sticky top-0 z-10 w-full bg-white/80 dark:bg-black/80 border-b border-zinc-200 dark:border-zinc-800 flex flex-col items-center py-2 mb-6 shadow-sm">
         <div className="flex flex-col items-center">
           <span className="text-xl font-bold" style={{color: '#F5831F'}}>GoldenHourToday <span aria-label="sun" role="img">☀️</span></span>
-          <Link href="/" className="text-xs text-blue-600 hover:underline">← Back to Today</Link>
+          <div className="text-xs text-zinc-500 mt-1">
+            7-Day Forecast
+          </div>
         </div>
       </header>
       
@@ -68,6 +69,6 @@ export default function ForecastPage() {
           <p>© 2025 GoldenHourToday | <a href="/privacy" className="hover:underline">Privacy</a> | <a href="/contact" className="hover:underline">Contact</a></p>
         </div>
       </footer>
-    </>
+    </div>
   );
 }
