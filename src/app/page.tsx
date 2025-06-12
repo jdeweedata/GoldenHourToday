@@ -1,103 +1,237 @@
-import Image from "next/image";
+'use client';
+import React from "react";
+import Head from "next/head";
+import { useEffect, useState } from "react";
+import { reverseGeocode, Place } from "@/lib/geocode";
+import { generateICS } from "@/lib/ics";
+import { SunTimes } from "@/lib/sunTimes";
+import Link from "next/link";
+import { useSunTimes } from "@/hooks/useSunTimes";
+
+function formatTime(date: Date) {
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  // Function to handle calendar download
+  function handleAddToCalendar(sunTimes: SunTimes, locationName: string) {
+    // Only allow premium users to download calendar
+    if (!isPremium) {
+      alert("Calendar export is a premium feature. Upgrade to download.");
+      return;
+    }
+    
+    // Generate ICS file content
+    const icsContent = generateICS(sunTimes, locationName);
+    
+    // Create downloadable file
+    const blob = new Blob([icsContent], { type: 'text/calendar' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `golden-hours-${new Date().toISOString().split('T')[0]}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  // Premium state (temporary toggle for testing)
+  const [isPremium, setIsPremium] = useState(false);
+  
+  const [location, setLocation] = useState<Place | null>(null);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [cityInput, setCityInput] = useState("");
+  const [cityError, setCityError] = useState("");
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
+
+  // If user chooses city, geocode it
+  async function handleCitySearch() {
+    setCityError("");
+    if (!cityInput.trim()) {
+      setCityError("Enter a city name");
+      return;
+    }
+    const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityInput)}&count=1&language=en&format=json`;
+    const res = await fetch(url);
+    if (!res.ok) {
+      setCityError("Could not search city");
+      return;
+    }
+    const json = await res.json();
+    const result = json.results?.[0];
+    if (!result) {
+      setCityError("City not found");
+      return;
+    }
+    setLocation({ city: result.name, country: result.country || "" });
+    setCoords({ lat: result.latitude, lon: result.longitude });
+    setShowLocationPrompt(false);
+  }
+
+  // On mount: use geolocation if no city set
+  useEffect(() => {
+    if (coords) return; // already have coords from city search
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+        // Reverse geocode to get city/country
+        const place = await reverseGeocode(pos.coords.latitude, pos.coords.longitude);
+        if (place) setLocation(place);
+      },
+      () => {},
+      { enableHighAccuracy: false, timeout: 10000 }
+    );
+  }, [coords]);
+
+  // Use coords for sun times
+  const { data, loading, error } = useSunTimes(coords?.lat, coords?.lon);
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center">
+        <p>Loading…</p>
+      </main>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-4 text-center">
+        <p className="text-red-600 max-w-sm">
+          {error ?? "Unable to load sunrise/sunset data."}
+          <br />
+          Please allow location access or refresh the page.
+        </p>
+      </main>
+    );
+  }
+
+  return (
+    <>
+      <Head>
+        <title>Sunrise, Sunset & Golden Hour Times Near You | GoldenHourToday</title>
+        <meta name="description" content="See today's sunrise, sunset, and golden hour times for your exact location. Free, fast, mobile-friendly, and ad-free for early users." />
+        <meta property="og:title" content="Sunrise, Sunset & Golden Hour Times Near You" />
+        <meta property="og:description" content="See today's sunrise, sunset, and golden hour times for your exact location. Free, fast, mobile-friendly, and ad-free for early users." />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+      <header className="sticky top-0 z-10 w-full bg-white/80 dark:bg-black/80 border-b border-zinc-200 dark:border-zinc-800 flex flex-col items-center py-2 mb-6 shadow-sm">
+        <div className="flex flex-col items-center">
+          <span className="text-xl font-bold" style={{color: '#F5831F'}}>GoldenHourToday <span aria-label="sun" role="img">☀️</span></span>
+          <span className="text-xs text-zinc-500 mt-1">
+            Location: <span className="font-semibold text-zinc-700 dark:text-zinc-200">{location ? `${location.city}${location.country ? ', ' + location.country : ''}` : 'Current Location'}</span>
+            <button
+              className="ml-2 underline text-xs text-blue-600 hover:text-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-400 rounded"
+              aria-label="Change Location"
+              onClick={() => setShowLocationPrompt(true)}
+            >Change Location</button>
+          </span>
+          <span className="text-xs text-zinc-500">Today: {new Intl.DateTimeFormat(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date())}</span>
+        </div>
+      </header>
+      <main className="min-h-screen flex flex-col items-center p-4 bg-white dark:bg-black">
+        {showLocationPrompt && (
+          <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40">
+            <div className="bg-white dark:bg-zinc-900 p-6 rounded shadow w-80 max-w-full">
+              <h2 className="text-lg font-bold mb-2">Change Location</h2>
+              <input
+                className="w-full p-2 mb-2 border rounded text-black"
+                type="text"
+                placeholder="Enter city name"
+                value={cityInput}
+                onChange={e => setCityInput(e.target.value)}
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <button className="bg-blue-600 text-white px-3 py-1 rounded" onClick={handleCitySearch}>Search</button>
+                <button className="px-3 py-1 rounded border" onClick={() => setShowLocationPrompt(false)}>Cancel</button>
+              </div>
+              {cityError && <div className="text-red-600 text-xs mt-2">{cityError}</div>}
+            </div>
+          </div>
+        )}
+        <h1 className="text-2xl font-bold mb-6" style={{color: '#F5831F'}}>GoldenHourToday</h1>
+        <div className="w-full max-w-sm border rounded-lg p-4 shadow bg-white dark:bg-zinc-900" aria-label="Today's sun times">
+          <table className="w-full text-left">
+            <tbody className="text-sm">
+              <tr>
+                <td className="py-1" aria-label="Sunrise">Sunrise</td>
+                <td className="py-1 text-right font-medium" aria-label={`Sunrise at ${formatTime(data.sunrise)}`}>{formatTime(data.sunrise)}</td>
+              </tr>
+              <tr>
+                <td className="py-1" aria-label="First light">First-light</td>
+                <td className="py-1 text-right font-medium" aria-label={`First light at ${formatTime(data.civilTwilightBegin)}`}>{formatTime(data.civilTwilightBegin)}</td>
+              </tr>
+              <tr>
+                <td className="py-1" aria-label="Morning golden hour">Golden hour ✨</td>
+                <td className="py-1 text-right font-medium" aria-label={`Morning golden hour from ${formatTime(data.goldenHourMorningStart)} to ${formatTime(data.goldenHourMorningEnd)}`}>{formatTime(data.goldenHourMorningStart)} – {formatTime(data.goldenHourMorningEnd)}</td>
+              </tr>
+              <tr>
+                <td className="py-1" aria-label="Solar noon">Solar noon</td>
+                <td className="py-1 text-right font-medium" aria-label={`Solar noon at ${formatTime(new Date((data.sunrise.getTime() + data.sunset.getTime()) / 2))}`}>
+                  {formatTime(new Date((data.sunrise.getTime() + data.sunset.getTime()) / 2))}
+                </td>
+              </tr>
+              <tr>
+                <td className="py-1" aria-label="Evening golden hour">Golden hour ✨</td>
+                <td className="py-1 text-right font-medium" aria-label={`Evening golden hour from ${formatTime(data.goldenHourEveningStart)} to ${formatTime(data.goldenHourEveningEnd)}`}>{formatTime(data.goldenHourEveningStart)} – {formatTime(data.goldenHourEveningEnd)}</td>
+              </tr>
+              <tr>
+                <td className="py-1" aria-label="Sunset">Sunset</td>
+                <td className="py-1 text-right font-medium" aria-label={`Sunset at ${formatTime(data.sunset)}`}>{formatTime(data.sunset)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        {/* Add to Calendar Button */}
+        <div className="mt-4 flex justify-center">
+          <button 
+            onClick={() => handleAddToCalendar(data, location?.city || 'Current Location')}
+            className="flex items-center gap-1 px-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+            aria-label="Add golden hours to calendar"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <span>➕ Add to Calendar</span>
+            {!isPremium && (
+              <span className="ml-1 text-xs bg-amber-500 text-white px-1 rounded">PREMIUM</span>
+            )}
+          </button>
+        </div>
+        
+        {/* Ad Banner (hidden for premium) */}
+        {!isPremium && (
+          <div className="w-full max-w-sm mt-6 p-4 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded text-center">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Advertisement</p>
+            <div className="h-16 flex items-center justify-center border border-dashed border-zinc-300 dark:border-zinc-600 my-2">
+              <span className="text-zinc-400">Ad Banner Placeholder</span>
+            </div>
+            <button 
+              onClick={() => setIsPremium(!isPremium)} 
+              className="text-xs text-blue-600 hover:underline"
+            >
+              {isPremium ? "Show Ads (Disable Premium)" : "Go Ad-Free with Premium"}
+            </button>
+          </div>
+        )}
+        
+        {/* 7-Day Forecast Link */}
+        <div className="mt-6 w-full max-w-sm">
+          <Link href="/forecast" className="block w-full text-center py-2 px-4 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
+            7-Day Forecast →
+          </Link>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      
+      {/* Footer */}
+      <footer className="w-full border-t border-zinc-200 dark:border-zinc-800 mt-12 py-4 text-center text-xs text-zinc-500">
+        <div className="container mx-auto px-4">
+          <p>© 2025 GoldenHourToday | <a href="/privacy" className="hover:underline">Privacy</a> | <a href="/contact" className="hover:underline">Contact</a></p>
+        </div>
       </footer>
-    </div>
+    </>
   );
 }
